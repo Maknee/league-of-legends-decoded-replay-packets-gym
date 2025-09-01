@@ -1,0 +1,112 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "league-of-legends-decoded-replay-packets-gym"
+version = "0.1.0"
+description = "A Gymnasium environment for League of Legends decoded replay packets, enabling esports research, AI development, and gameplay analysis."
+authors = [
+    {name = "League Parser Team", email = "parser@league.com"}
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Games/Entertainment",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["league-of-legends", "esports", "ai", "reinforcement-learning", "gymnasium", "replay-analysis", "gaming", "neural-networks"]
+
+dependencies = [
+    "gymnasium>=0.26.0",
+    "numpy>=1.21.0",
+    "datasets>=2.0.0",
+    "huggingface-hub>=0.10.0",
+    "tqdm>=4.64.0",
+    "pydantic>=1.8.0",
+]
+
+[project.optional-dependencies]
+ai = [
+    "torch>=1.12.0",
+    "torchvision>=0.13.0",
+    "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
+    "tensorboard>=2.8.0",
+    "scikit-learn>=1.1.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "flake8>=4.0.0",
+    "mypy>=0.950",
+    "pre-commit>=2.17.0",
+]
+viz = [
+    "matplotlib>=3.5.0",
+    "pillow>=9.0.0",
+    "opencv-python>=4.5.0",
+    "imageio>=2.19.0",
+]
+all = [
+    "torch>=1.12.0",
+    "torchvision>=0.13.0",
+    "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
+    "tensorboard>=2.8.0",
+    "scikit-learn>=1.1.0",
+    "pillow>=9.0.0",
+    "opencv-python>=4.5.0",
+    "imageio>=2.19.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "flake8>=4.0.0",
+    "mypy>=0.950",
+    "pre-commit>=2.17.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/league-of-legends-decoded-replay-packets-gym"
+Documentation = "https://github.com/your-org/league-of-legends-decoded-replay-packets-gym/blob/main/README.md"
+Repository = "https://github.com/your-org/league-of-legends-decoded-replay-packets-gym"
+"Bug Tracker" = "https://github.com/your-org/league-of-legends-decoded-replay-packets-gym/issues"
+
+[project.scripts]
+league-gym = "league_of_legends_decoded_replay_packets_gym.cli:main"
+
+[tool.setuptools]
+packages = ["league_of_legends_decoded_replay_packets_gym"]
+
+[tool.setuptools.package-data]
+"*" = ["*.md", "*.txt", "*.yml", "*.yaml", "*.json"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["league_of_legends_decoded_replay_packets_gym"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

@@ -13,8 +13,7 @@ import torch
 import numpy as np
 from pathlib import Path
 
-# Add parent directories to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
+# Module imports
 
 from .cli import main as cli_main
 from .openleague5_model import OpenLeague5Model, ModelConfig
@@ -108,9 +107,9 @@ def example_state_encoding():
     print("=" * 50)
     
     # Import here to avoid circular imports in main module
-    import league_replays_parser as lrp
-    from league_replays_parser.types import Position
-    from league_replays_parser.league_replays_gym import GameState
+    import league_of_legends_decoded_replay_packets_gym as lrp
+    from league_of_legends_decoded_replay_packets_gym.types import Position
+    from league_of_legends_decoded_replay_packets_gym.league_replays_gym import GameState
     
     # Create state encoder
     encoder = StateEncoder(spatial_resolution=64, max_units=50)

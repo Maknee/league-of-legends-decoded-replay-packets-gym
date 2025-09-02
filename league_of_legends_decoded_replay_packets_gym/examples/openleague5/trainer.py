@@ -33,9 +33,8 @@ import logging
 from pathlib import Path
 import sys
 
-# Add parent directories to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
-import league_replays_parser as lrp
+# Import from the renamed package
+import league_of_legends_decoded_replay_packets_gym as lrp
 
 from .openleague5_model import OpenLeague5Model, ModelConfig
 from .state_encoder import StateEncoder, GameStateVector

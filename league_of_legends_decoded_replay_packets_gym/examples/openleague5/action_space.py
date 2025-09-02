@@ -21,9 +21,8 @@ from enum import IntEnum
 import sys
 import os
 
-# Add parent directories to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
-from league_replays_parser.types import Position
+# Import from the renamed package
+from ...types import Position
 
 
 class ActionType(IntEnum):

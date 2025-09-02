@@ -33,12 +33,11 @@ Example usage:
     >>> obs, info = env.reset()
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "League Parser Team"
 __email__ = "parser@league.com"
 
 from .types import Position, GameEvent
-from .unified_parser import UnifiedLeagueParser, ParseMethod, ParseResult
 from .league_replays_gym import (
     ReplayDataset, 
     LeagueReplaysEnv, 

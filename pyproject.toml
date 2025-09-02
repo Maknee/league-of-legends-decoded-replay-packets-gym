@@ -80,10 +80,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/league-of-legends-decoded-replay-packets-gym"
-Documentation = "https://github.com/your-org/league-of-legends-decoded-replay-packets-gym/blob/main/README.md"
-Repository = "https://github.com/your-org/league-of-legends-decoded-replay-packets-gym"
-"Bug Tracker" = "https://github.com/your-org/league-of-legends-decoded-replay-packets-gym/issues"
+Homepage = "https://github.com/Maknee/league-of-legends-decoded-replay-packets-gym"
+Documentation = "https://github.com/Maknee/league-of-legends-decoded-replay-packets-gym/blob/main/README.md"
+Repository = "https://github.com/Maknee/league-of-legends-decoded-replay-packets-gym"
+"Bug Tracker" = "https://github.com/Maknee/league-of-legends-decoded-replay-packets-gym/issues"
 
 [project.scripts]
 league-gym = "league_of_legends_decoded_replay_packets_gym.cli:main"

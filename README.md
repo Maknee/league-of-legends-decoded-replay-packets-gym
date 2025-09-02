@@ -19,6 +19,11 @@ import league_of_legends_decoded_replay_packets_gym as lol_gym
 
 # Load professional replay data from HuggingFace
 dataset = lol_gym.ReplayDataset([
+    "12_22/"  # Download entire patch directory
+], repo_id="maknee/league-of-legends-decoded-replay-packets")
+
+# Or specific files
+dataset = lol_gym.ReplayDataset([
     "12_22/batch_001.jsonl.gz",  # Professional matches from patch 12.22
     "12_22/batch_002.jsonl.gz"
 ], repo_id="maknee/league-of-legends-decoded-replay-packets")
@@ -73,6 +78,13 @@ The main data source is [maknee/league-of-legends-decoded-replay-packets](https:
 ```python
 # Available datasets
 dataset = lol_gym.ReplayDataset([
+    "12_22/",                        # Entire patch directory
+    "worlds_2022/",                  # Entire tournament directory  
+    "13_1/batch_001.jsonl.gz"        # Specific file
+], repo_id="maknee/league-of-legends-decoded-replay-packets")
+
+# Individual files also supported
+dataset = lol_gym.ReplayDataset([
     "12_22/batch_001.jsonl.gz",      # Pro matches, patch 12.22
     "12_22/batch_002.jsonl.gz",      # More pro matches
     "worlds_2022/semifinals.jsonl.gz", # Championship matches
@@ -92,9 +104,9 @@ dataset = lol_gym.ReplayDataset(["local_replay.jsonl.gz"])
 ```python
 from league_of_legends_decoded_replay_packets_gym.examples.openleague5 import OpenLeague5Model
 
-# Load professional data
+# Load professional data  
 dataset = lol_gym.ReplayDataset(
-    ["12_22/batch_001.jsonl.gz"], 
+    ["12_22/"],  # Download entire patch directory
     repo_id="maknee/league-of-legends-decoded-replay-packets"
 )
 dataset.load(max_games=1)

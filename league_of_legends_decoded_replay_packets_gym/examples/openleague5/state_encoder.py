@@ -20,11 +20,9 @@ from dataclasses import dataclass, field
 import sys
 import os
 
-# Add parent directories to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
-import league_replays_parser as lrp
-from league_replays_parser.types import Position, GameEvent
-from league_replays_parser.league_replays_gym import GameState
+# Import from the renamed package
+from ...types import Position, GameEvent
+from ...league_replays_gym import GameState
 
 
 @dataclass

@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Iterator, Tuple, Callable, Union, TYPE_CHECKING
 from enum import Enum
 import numpy as np
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, list_repo_files
 import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.core import ObsType, ActType
@@ -210,15 +210,63 @@ class ReplayDataset:
         self.games: List[List[GameEvent]] = []
         self.loaded = False
     
+    def _expand_directories(self, sources: List[str]) -> List[str]:
+        """Expand directory patterns to individual files"""
+        expanded = []
+        
+        for source in sources:
+            if self._is_directory_pattern(source):
+                try:
+                    # List all files in the repository
+                    all_files = list_repo_files(
+                        repo_id=self.repo_id,
+                        repo_type="dataset"
+                    )
+                    
+                    # Filter files that match the directory pattern
+                    directory_path = source.rstrip('/*').rstrip('/')
+                    matching_files = [
+                        f for f in all_files 
+                        if f.startswith(directory_path + '/') and f.endswith('.jsonl.gz')
+                    ]
+                    
+                    if not matching_files:
+                        raise ValueError(f"No .jsonl.gz files found in directory: {source}")
+                        
+                    expanded.extend(matching_files)
+                except Exception as e:
+                    raise ValueError(f"Failed to expand directory {source}: {e}")
+            else:
+                expanded.append(source)
+        
+        return expanded
+    
+    def _is_directory_pattern(self, source: str) -> bool:
+        """Check if a source is a directory pattern"""
+        # Skip local files
+        if source.startswith('/') or source.startswith('./') or source.startswith('test_data/'):
+            return False
+            
+        # Directory if ends with / or /* or contains / but no file extension
+        return (source.endswith('/') or 
+                source.endswith('/*') or
+                ('/' in source and not source.endswith('.gz') and not source.endswith('.jsonl')))
+
     def load(self, max_games: Optional[int] = None) -> None:
         """Load games from all data sources"""
         if not self.data_sources:
             raise ValueError("No data sources provided")
         
+        # Expand directories to individual files
+        try:
+            expanded_sources = self._expand_directories(self.data_sources)
+        except ValueError as e:
+            raise ValueError(f"Failed to expand data sources: {e}")
+        
         self.games.clear()
         load_errors = []
         
-        for source in self.data_sources:
+        for source in expanded_sources:
             if not isinstance(source, str) or not source.strip():
                 load_errors.append(f"Invalid data source: {source}")
                 continue

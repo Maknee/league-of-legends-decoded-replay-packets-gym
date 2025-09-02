@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "league-of-legends-decoded-replay-packets-gym"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Gymnasium environment for League of Legends decoded replay packets, enabling esports research, AI development, and gameplay analysis."
 authors = [
     {name = "League Parser Team", email = "parser@league.com"}

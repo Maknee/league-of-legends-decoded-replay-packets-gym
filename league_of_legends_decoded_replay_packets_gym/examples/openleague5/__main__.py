@@ -304,8 +304,11 @@ def show_usage_examples():
     print("=" * 50)
     
     examples = [
-        ("Train model on replay data", 
+        ("Train model on local replay data", 
          "python -m examples.openleague5 train --train-dir data/replays --epochs 50"),
+        
+        ("Train using HuggingFace dataset",
+         "python -m examples.openleague5 train --huggingface-repo maknee/league-of-legends-decoded-replay-packets --huggingface-filter '12_22/*.jsonl.gz' --huggingface-max-files 5"),
         
         ("Predict action at specific time",
          "python -m examples.openleague5 predict --model model.pt --input replay.jsonl.gz --time 900"),

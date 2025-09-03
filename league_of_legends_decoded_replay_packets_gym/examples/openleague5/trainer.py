@@ -36,9 +36,16 @@ import sys
 # Import from the renamed package
 import league_of_legends_decoded_replay_packets_gym as lrp
 
-from .openleague5_model import OpenLeague5Model, ModelConfig
-from .state_encoder import StateEncoder, GameStateVector
-from .action_space import ActionSpace, ActionPrediction, ActionSequenceAnalyzer
+# Handle both relative and absolute imports
+try:
+    from .openleague5_model import OpenLeague5Model, ModelConfig
+    from .state_encoder import StateEncoder, GameStateVector
+    from .action_space import ActionSpace, ActionPrediction, ActionSequenceAnalyzer
+except ImportError:
+    # Direct execution - use absolute imports
+    from openleague5_model import OpenLeague5Model, ModelConfig
+    from state_encoder import StateEncoder, GameStateVector
+    from action_space import ActionSpace, ActionPrediction, ActionSequenceAnalyzer
 
 
 @dataclass
@@ -91,6 +98,12 @@ class TrainingConfig:
     max_games_per_file: int = 100
     temporal_stride: int = 30  # Seconds between samples
     min_sequence_length: int = 5  # Minimum sequence length
+    
+    # HuggingFace dataset integration
+    huggingface_repo_id: Optional[str] = None  # e.g. "maknee/league-of-legends-decoded-replay-packets"
+    huggingface_file_filter: Optional[str] = None  # e.g. "12_22/*.jsonl.gz" or "12_22/batch_00*.jsonl.gz"
+    huggingface_max_files: Optional[int] = None  # Limit number of files to download
+    cache_dir: Optional[str] = None  # Local cache directory for downloaded files
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary for serialization"""
@@ -485,6 +498,80 @@ class Trainer:
         )
         self.logger = logging.getLogger(__name__)
     
+    def _resolve_huggingface_files(self) -> List[str]:
+        """
+        Resolve and download files from HuggingFace repository if configured
+        
+        Returns:
+            List of local file paths to use for training
+        """
+        if not self.config.huggingface_repo_id:
+            return []
+        
+        try:
+            from huggingface_hub import HfApi, hf_hub_download
+            import fnmatch
+            
+            self.logger.info(f"🤗 Fetching file list from HuggingFace repo: {self.config.huggingface_repo_id}")
+            
+            # Get list of files in the repository
+            api = HfApi()
+            repo_files = api.list_repo_files(
+                repo_id=self.config.huggingface_repo_id,
+                repo_type="dataset"
+            )
+            
+            # Filter files based on pattern
+            filtered_files = []
+            file_pattern = self.config.huggingface_file_filter or "*.jsonl.gz"
+            
+            for file in repo_files:
+                if fnmatch.fnmatch(file, file_pattern):
+                    filtered_files.append(file)
+            
+            # Limit number of files if specified
+            if self.config.huggingface_max_files and len(filtered_files) > self.config.huggingface_max_files:
+                filtered_files = filtered_files[:self.config.huggingface_max_files]
+                self.logger.info(f"📊 Limited to {self.config.huggingface_max_files} files")
+            
+            self.logger.info(f"📁 Found {len(filtered_files)} matching files")
+            
+            # Download files to local cache
+            local_files = []
+            cache_dir = self.config.cache_dir or "data/huggingface_cache"
+            
+            # Ensure cache_dir is absolute path
+            if not os.path.isabs(cache_dir):
+                cache_dir = os.path.abspath(cache_dir)
+            
+            # Create cache directory if it doesn't exist
+            os.makedirs(cache_dir, exist_ok=True)
+            
+            for file in filtered_files:
+                self.logger.info(f"⬇️  Downloading {file}...")
+                try:
+                    local_path = hf_hub_download(
+                        repo_id=self.config.huggingface_repo_id,
+                        filename=file,
+                        repo_type="dataset",
+                        local_dir=cache_dir,
+                        local_dir_use_symlinks=False  # Create actual files, not symlinks
+                    )
+                    local_files.append(local_path)
+                except Exception as e:
+                    self.logger.warning(f"⚠️  Failed to download {file}: {e}")
+                    continue
+            
+            self.logger.info(f"✅ Downloaded {len(local_files)} files to {cache_dir}")
+            return local_files
+            
+        except ImportError:
+            self.logger.error("❌ huggingface_hub not installed. Install with: pip install huggingface_hub")
+            return []
+        except Exception as e:
+            self.logger.error(f"❌ Failed to fetch HuggingFace files: {e}")
+            return []
+    
     def create_dataloader(self, replay_files: List[str],
                          shuffle: bool = True) -> DataLoader:
         """
@@ -728,18 +815,33 @@ class Trainer:
         if self.scaler and 'scaler_state_dict' in checkpoint:
             self.scaler.load_state_dict(checkpoint['scaler_state_dict'])
     
-    def train(self, train_files: List[str], 
+    def train(self, train_files: Optional[List[str]] = None, 
              val_files: Optional[List[str]] = None):
         """
         Main training loop
         
         Args:
-            train_files: List of training replay files
+            train_files: List of training replay files (optional if using HuggingFace)
             val_files: List of validation replay files (optional)
         """
         self.logger.info("Starting training...")
         self.logger.info(f"Device: {self.device}")
         self.logger.info(f"Model parameters: {sum(p.numel() for p in self.model.parameters())}")
+        
+        # Resolve training files (local files or HuggingFace)
+        if not train_files:
+            train_files = []
+        
+        # Add HuggingFace files if configured
+        hf_files = self._resolve_huggingface_files()
+        if hf_files:
+            train_files.extend(hf_files)
+            self.logger.info(f"📚 Using {len(hf_files)} files from HuggingFace")
+        
+        if not train_files:
+            raise ValueError("No training files provided. Specify train_files or configure huggingface_repo_id")
+        
+        self.logger.info(f"📁 Total training files: {len(train_files)}")
         
         # Create data loaders
         train_loader = self.create_dataloader(train_files, shuffle=True)
@@ -812,7 +914,12 @@ class Trainer:
                 f"Epoch {epoch} completed in {epoch_time:.1f}s, "
                 f"Average train loss: {avg_train_loss:.4f}"
             )
-        
+
+        checkpoint_path = os.path.join(
+                            self.config.checkpoint_dir, 
+                            f'checkpoint_step_final.pt'
+                        )        
+        self.save_checkpoint(checkpoint_path)
         self.logger.info("Training completed!")
 
 
@@ -823,27 +930,99 @@ def create_trainer(config: Optional[TrainingConfig] = None) -> Trainer:
     return Trainer(config)
 
 
-if __name__ == "__main__":
-    # Test the training pipeline
-    config = TrainingConfig(
-        batch_size=4,  # Small batch for testing
-        sequence_length=5,
-        num_epochs=1
-    )
+def main():
+    """Main entry point for direct trainer execution"""
+    import argparse
+    import sys
     
-    trainer = create_trainer(config)
+    parser = argparse.ArgumentParser(description="OpenLeague5 Trainer - Direct Execution")
     
-    print("Trainer created successfully!")
-    print(f"Device: {trainer.device}")
-    print(f"Model parameters: {sum(p.numel() for p in trainer.model.parameters())}")
+    # Training parameters
+    parser.add_argument('--batch-size', type=int, default=32, help='Training batch size')
+    parser.add_argument('--learning-rate', type=float, default=1e-4, help='Learning rate')
+    parser.add_argument('--epochs', type=int, default=10, help='Number of epochs')
+    parser.add_argument('--checkpoint-dir', default='checkpoints', help='Checkpoint directory')
     
-    # Test with dummy files (would need real replay files for actual training)
-    dummy_files = ["test_data/sample.jsonl.gz"]
+    # Data sources
+    parser.add_argument('--train-files', nargs='+', help='Local training files')
+    parser.add_argument('--train-dir', help='Directory with training files')
+    
+    # HuggingFace options
+    parser.add_argument('--huggingface-repo', default='maknee/league-of-legends-decoded-replay-packets',
+                       help='HuggingFace repository')
+    parser.add_argument('--huggingface-filter', default='12_22/batch_00*.jsonl.gz',
+                       help='File filter pattern')
+    parser.add_argument('--huggingface-max-files', type=int, default=3,
+                       help='Max files to download')
+    parser.add_argument('--cache-dir', default='data/hf_cache',
+                       help='Cache directory')
+    
+    # Other options
+    parser.add_argument('--resume', help='Resume from checkpoint')
+    parser.add_argument('--config', help='JSON config file')
+    
+    args = parser.parse_args()
     
     try:
-        # This would run training with real data
-        # trainer.train(dummy_files)
-        print("Training pipeline setup complete!")
+        print("🚀 OpenLeague5 Direct Trainer")
+        print("=" * 40)
+        
+        # Load config
+        if args.config:
+            import json
+            with open(args.config, 'r') as f:
+                config_dict = json.load(f)
+            config = TrainingConfig(**config_dict)
+        else:
+            # Create config from args
+            config = TrainingConfig(
+                batch_size=args.batch_size,
+                learning_rate=args.learning_rate,
+                num_epochs=args.epochs,
+                checkpoint_dir=args.checkpoint_dir,
+                huggingface_repo_id=args.huggingface_repo,
+                huggingface_file_filter=args.huggingface_filter,
+                huggingface_max_files=args.huggingface_max_files,
+                cache_dir=args.cache_dir
+            )
+        
+        print(f"📋 Configuration:")
+        print(f"   Batch size: {config.batch_size}")
+        print(f"   Learning rate: {config.learning_rate}")
+        print(f"   Epochs: {config.num_epochs}")
+        print(f"   HuggingFace repo: {config.huggingface_repo_id}")
+        print(f"   File filter: {config.huggingface_file_filter}")
+        print(f"   Max files: {config.huggingface_max_files}")
+        
+        # Prepare training files
+        train_files = []
+        if args.train_files:
+            train_files = args.train_files
+        elif args.train_dir:
+            train_dir = Path(args.train_dir)
+            train_files = [str(f) for f in train_dir.glob("*.jsonl.gz")]
+        
+        # Create trainer
+        trainer = Trainer(config)
+        
+        # Resume if needed
+        if args.resume:
+            print(f"📂 Resuming from: {args.resume}")
+            trainer.load_checkpoint(args.resume)
+        
+        # Start training
+        print("🎯 Starting training...")
+        trainer.train(train_files)
+        
+        print("✅ Training completed successfully!")
+        return 0
+        
     except Exception as e:
-        print(f"Expected error with dummy data: {e}")
-        print("Would work with real replay files.")
+        print(f"❌ Training failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -33,7 +33,7 @@ from collections import defaultdict, deque
 # Add the python package to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'python'))
 
-import league_replays_parser as lrp
+import league_of_legends_decoded_replay_packets_gym as lrp
 
 class ChampionGifGenerator:
     def __init__(self, map_width=14800, map_height=14800):

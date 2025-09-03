@@ -75,12 +75,33 @@ def train_command(args: argparse.Namespace) -> int:
         if args.checkpoint_dir:
             config.checkpoint_dir = args.checkpoint_dir
         
+        # HuggingFace configuration
+        if hasattr(args, 'huggingface_repo') and args.huggingface_repo:
+            config.huggingface_repo_id = args.huggingface_repo
+        if hasattr(args, 'huggingface_filter') and args.huggingface_filter:
+            config.huggingface_file_filter = args.huggingface_filter
+        if hasattr(args, 'huggingface_max_files') and args.huggingface_max_files:
+            config.huggingface_max_files = args.huggingface_max_files
+        if hasattr(args, 'cache_dir') and args.cache_dir:
+            config.cache_dir = args.cache_dir
+        
         print(f"📋 Training Configuration:")
         print(f"   Batch size: {config.batch_size}")
         print(f"   Learning rate: {config.learning_rate}")
         print(f"   Epochs: {config.num_epochs}")
         print(f"   Sequence length: {config.sequence_length}")
         print(f"   Checkpoint dir: {config.checkpoint_dir}")
+        
+        if config.huggingface_repo_id:
+            print(f"🤗 HuggingFace Configuration:")
+            print(f"   Repository: {config.huggingface_repo_id}")
+            if config.huggingface_file_filter:
+                print(f"   File filter: {config.huggingface_file_filter}")
+            if config.huggingface_max_files:
+                print(f"   Max files: {config.huggingface_max_files}")
+            if config.cache_dir:
+                print(f"   Cache directory: {config.cache_dir}")
+        
         print(f"   Device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
         
         # Create trainer
@@ -109,13 +130,16 @@ def train_command(args: argparse.Namespace) -> int:
             val_files = list(val_dir.glob("*.jsonl.gz"))
             val_files = [str(f) for f in val_files]
         
-        if not train_files:
-            print("❌ No training files provided!")
+        if not train_files and not config.huggingface_repo_id:
+            print("❌ No training files provided! Use --train-files, --train-dir, or --huggingface-repo")
             return 1
         
-        print(f"📚 Training files: {len(train_files)}")
+        if train_files:
+            print(f"📚 Local training files: {len(train_files)}")
         if val_files:
             print(f"📊 Validation files: {len(val_files)}")
+        if config.huggingface_repo_id and not train_files:
+            print("📁 Training files will be downloaded from HuggingFace")
         
         # Start training
         trainer.train(train_files, val_files)
@@ -233,7 +257,27 @@ def predict_command(args: argparse.Namespace) -> int:
         # Display prediction results
         print("\n🎯 Prediction Results:")
         print("=" * 30)
-        print(f"Action: {predicted_action.get_action_description()}")
+        
+        # Map action type to readable description
+        action_names = {
+            0: "No Action",
+            1: "Move", 
+            2: "Attack",
+            3: "Use Q Ability",
+            4: "Use W Ability",
+            5: "Use E Ability", 
+            6: "Use R Ability",
+            7: "Use Item",
+            8: "Recall",
+            9: "Shop",
+            10: "Level Up",
+            11: "Ping"
+        }
+        
+        action_type = predicted_action['action_type']
+        action_description = action_names.get(action_type, f"Action {action_type}")
+        
+        print(f"Action: {action_description}")
         print(f"Confidence: {predicted_action['action_confidence']:.3f}")
         print(f"State Value: {predicted_action['value']:.3f}")
         
@@ -689,6 +733,13 @@ Examples:
     train_parser.add_argument('--learning-rate', type=float, help='Learning rate')
     train_parser.add_argument('--epochs', type=int, help='Number of training epochs')
     train_parser.add_argument('--checkpoint-dir', help='Checkpoint directory')
+    
+    # HuggingFace integration options
+    train_parser.add_argument('--huggingface-repo', help='HuggingFace dataset repository (e.g. "maknee/league-of-legends-decoded-replay-packets")')
+    train_parser.add_argument('--huggingface-filter', help='File filter pattern (e.g. "12_22/*.jsonl.gz" or "*/batch_00*.jsonl.gz")')
+    train_parser.add_argument('--huggingface-max-files', type=int, help='Maximum number of files to download from HuggingFace')
+    train_parser.add_argument('--cache-dir', help='Local cache directory for downloaded files')
+    
     train_parser.set_defaults(func=train_command)
     
     # Predict command

@@ -1,5 +1,9 @@
 # League of Legends Decoded Replay Packets Gym 🏋️‍♀️
 
+# Disclaimer
+
+This work isn’t endorsed by Riot Games and doesn’t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc.
+
 **A Gymnasium Environment for League of Legends Decoded Replay Packets**
 
 [![PyPI version](https://badge.fury.io/py/league-of-legends-decoded-replay-packets-gym.svg)](https://badge.fury.io/py/league-of-legends-decoded-replay-packets-gym)
@@ -100,6 +104,29 @@ dataset = lol_gym.ReplayDataset(["local_replay.jsonl.gz"])
 
 ## 🤖 AI Examples
 
+### Champion Movement Visualization
+
+![movement](champion_movement.gif)
+
+```python
+from league_of_legends_decoded_replay_packets_gym.examples.champion_gif_generator import ChampionGifGenerator
+
+# Create animated GIF of champion movements
+dataset = lol_gym.ReplayDataset(
+    ["worlds_2022/finals.jsonl.gz"],
+    repo_id="maknee/league-of-legends-decoded-replay-packets"
+)
+dataset.load(max_games=1)
+
+generator = ChampionGifGenerator()
+generator.create_gif(
+    dataset=dataset,
+    output_path="worlds_final_movements.gif",
+    max_time_minutes=5,
+    fps=6
+)
+```
+
 ### Action Prediction with OpenLeague5
 ```python
 from league_of_legends_decoded_replay_packets_gym.examples.openleague5 import OpenLeague5Model
@@ -130,24 +157,17 @@ print(f"🔮 AI Prediction: {prediction.get_action_description()}")
 print(f"   Confidence: {prediction.confidence:.3f}")
 ```
 
-### Champion Movement Visualization
-```python
-from league_of_legends_decoded_replay_packets_gym.examples.champion_gif_generator import ChampionGifGenerator
-
-# Create animated GIF of champion movements
-dataset = lol_gym.ReplayDataset(
-    ["worlds_2022/finals.jsonl.gz"],
-    repo_id="maknee/league-of-legends-decoded-replay-packets"
-)
-dataset.load(max_games=1)
-
-generator = ChampionGifGenerator()
-generator.create_gif(
-    dataset=dataset,
-    output_path="worlds_final_movements.gif",
-    max_time_minutes=5,
-    fps=6
-)
+```bash
+🎯 Prediction Results:
+==============================
+Action: Use W Ability
+Confidence: 0.354
+State Value: -0.681
+Target Position: (7266, 3750) world coords
+Coordinate Confidence: X=0.158, Y=0.080
+Unit Target: 0
+Unit Confidence: 1.000
+✅ Prediction completed successfully!
 ```
 
 ## 🔧 Advanced Usage
